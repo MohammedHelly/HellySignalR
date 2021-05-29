@@ -27,10 +27,10 @@ namespace Customer.Controllers
         }
         private void dependency_OnChange(object sender, SqlNotificationEventArgs e) //this will be called when any changes occur in db table. 
         {
-            //if (e.Type == SqlNotificationType.Change)
-            //{
-            //    _signalContext.Show();
-            //}
+            if (e.Type == SqlNotificationType.Change)
+            {
+                CusHub.Show();
+            }
             var dependency = sender as SqlDependency;
 
             if (dependency == null) return;
@@ -39,10 +39,12 @@ namespace Customer.Controllers
             {
                 dependency.OnChange -= dependency_OnChange;
 
-                _signalContext.Clients.All.SendAsync("displayCustomer");
+               _signalContext.Clients.All.SendAsync("displayCustomer");
+              
             }
         }
         // GET: CustomerInfoes
+        [HttpGet("CustomerInfoes")]
         public async Task<IActionResult> Index()
         {
             // return View(await _context.CustomerInfos.ToListAsync());
