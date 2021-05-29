@@ -8,6 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using Customer.Data;
 using Customer.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using System.Data;
 
 namespace Customer.Controllers
 {
@@ -15,16 +18,86 @@ namespace Customer.Controllers
     {
         private readonly CustomerContext _context;
         private readonly IHubContext<CusHub> _signalContext;
-        public CustomerInfoesController(CustomerContext context, IHubContext<CusHub> signalContext)
+        public IConfiguration Configuration { get; }
+        public CustomerInfoesController(CustomerContext context, IHubContext<CusHub> signalContext, IConfiguration configuration)
         {
             _context = context;
             _signalContext = signalContext;
+            Configuration = configuration;
         }
+        private void dependency_OnChange(object sender, SqlNotificationEventArgs e) //this will be called when any changes occur in db table. 
+        {
+            //if (e.Type == SqlNotificationType.Change)
+            //{
+            //    _signalContext.Show();
+            //}
+            var dependency = sender as SqlDependency;
 
+            if (dependency == null) return;
+
+            if (e.Info == SqlNotificationInfo.Insert)
+            {
+                dependency.OnChange -= dependency_OnChange;
+
+                _signalContext.Clients.All.SendAsync("displayCustomer");
+            }
+        }
         // GET: CustomerInfoes
         public async Task<IActionResult> Index()
         {
-            return View(await _context.CustomerInfos.ToListAsync());
+            // return View(await _context.CustomerInfos.ToListAsync());
+
+            {
+                var connStr = Configuration.GetConnectionString("DefaultConnection");
+
+                try
+                {
+
+                    using (SqlConnection con = new SqlConnection(connStr))
+                    {
+                        string cmdText = @"SELECT [Id]
+                                     ,[CusId]
+                                    ,[CusName]
+                                     ,[Status]
+                                    FROM [Customer].[dbo].[CustomerInfo]";
+                        using (SqlCommand cmd = new SqlCommand(cmdText, con))
+                        {
+                            cmd.CommandTimeout = 0;
+                            cmd.Notification = null;
+                            if (con.State == ConnectionState.Closed)
+                            {
+                                await con.OpenAsync();
+                            }
+
+                            SqlDependency customerInfoDependency = new SqlDependency(cmd);
+                            customerInfoDependency.OnChange += dependency_OnChange;
+                            SqlDependency.Start(connStr);
+
+                            using (SqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                var listCus = reader.Cast<IDataRecord>()
+                                .Select(x => new CustomerInfo
+                                {
+                                    Id = (int)x["Id"],
+                                    CusId = (string)x["CusId"],
+                                    CusName = (string)x["CusName"],
+                                }).ToList();
+                                return View(listCus);
+                            }
+                        }
+                    }
+
+                }
+
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+
+
+               
+            }
         }
 
         // GET: CustomerInfoes/Details/5
