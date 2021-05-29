@@ -3,7 +3,7 @@
 
 // Write your JavaScript code.
 $(() => {
-    let connection = new signalR.HubConnectionBuilder().withUrl("/Hubs/CusHub").build()
+    let connection = new signalR.HubConnectionBuilder().withUrl("Hubs/CusHub").build()
 
     connection.start()
 

@@ -58,15 +58,14 @@ namespace Customer
             app.UseRouting();
 
             app.UseAuthorization();
-            //app.UseSignalR(config => {
-            //    config.MapHub<SignalServer>("/Hubs/CusHub");
-            //});
+          
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}"); 
                 endpoints.MapHub<CusHub>("Hubs/CusHub");
+                endpoints.MapFallbackToController("Index", "Fallback");
             });
             //app.Use(async (context, next) =>
             //{
