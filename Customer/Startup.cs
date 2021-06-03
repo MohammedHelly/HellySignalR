@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Customer.Hubs;
+using Microsoft.AspNetCore.SignalR;
 //using Microsoft.AspNet.SignalR;
 
 namespace Customer
@@ -34,7 +35,9 @@ namespace Customer
                 var connStr = Configuration.GetConnectionString("DefaultConnection");
                 options.UseSqlServer(connStr);
             });
-            services.AddTransient<CusHub, CusHub>();
+            services.AddScoped<CusHub, CusHub>();
+            //services.AddScoped<IHubContext<CusHub>, IHubContext<CusHub>>();
+            
             services.AddSignalR();
             services.AddControllersWithViews();
         }

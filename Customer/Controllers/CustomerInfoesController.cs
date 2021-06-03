@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
+using System.Runtime.Remoting;
+using Customer.Models;
 
 namespace Customer.Controllers
 {
@@ -47,59 +49,69 @@ namespace Customer.Controllers
         [HttpGet("CustomerInfoes")]
         public async Task<IActionResult> Index()
         {
+            var connStr = Configuration.GetConnectionString("DefaultConnection");
+            if (SqlDependency.Stop(connStr))
+                SqlDependency.Start(connStr);
+            SqlDependency dependency = new SqlDependency();
+            dependency.OnChange += new OnChangeEventHandler(dependency_OnChange);
+            CallContext.SetData("MS.SqlDependencyCookie", dependency.Id);
+
+            var Customerlist = await _context.CustomerInfos.Where(s => s.Status == true).ToListAsync();
+            var listCus = Customerlist
+                    .Select(x => new   CustomerInfo
+                    {
+                        Id = x.Id,
+                        CusId = x.CusId,
+                        CusName = x.CusName,
+                    }).ToList();
+             return View(listCus);
             // return View(await _context.CustomerInfos.ToListAsync());
 
-            {
-                var connStr = Configuration.GetConnectionString("DefaultConnection");
+            //{
+            //    var connStr = Configuration.GetConnectionString("DefaultConnection");
 
-                try
-                {
+            //    try
+            //    {
 
-                    using (SqlConnection con = new SqlConnection(connStr))
-                    {
-                        string cmdText = @"SELECT [Id]
-                                     ,[CusId]
-                                    ,[CusName]
-                                     ,[Status]
-                                    FROM [Customer].[dbo].[CustomerInfo]";
-                        using (SqlCommand cmd = new SqlCommand(cmdText, con))
-                        {
-                            cmd.CommandTimeout = 0;
-                            cmd.Notification = null;
-                            if (con.State == ConnectionState.Closed)
-                            {
-                                await con.OpenAsync();
-                            }
+            //        using SqlConnection con = new SqlConnection(connStr);
+            //        string cmdText = @"SELECT [Id]
+            //                         ,[CusId]
+            //                        ,[CusName]
+            //                         ,[Status]
+            //                        FROM [Customer].[dbo].[CustomerInfo]";
+            //        using SqlCommand cmd = new SqlCommand(cmdText, con);
+            //        cmd.CommandTimeout = 0;
+            //        cmd.Notification = null;
+            //        if (con.State == ConnectionState.Closed)
+            //        {
+            //            await con.OpenAsync();
+            //        }
 
-                            SqlDependency customerInfoDependency = new SqlDependency(cmd);
-                            customerInfoDependency.OnChange += dependency_OnChange;
-                            SqlDependency.Start(connStr);
+            //        SqlDependency customerInfoDependency = new SqlDependency(cmd);
+            //        customerInfoDependency.OnChange += dependency_OnChange;
+            //        SqlDependency.Start(connStr);
 
-                            using (SqlDataReader reader = cmd.ExecuteReader())
-                            {
-                                var listCus = reader.Cast<IDataRecord>()
-                                .Select(x => new CustomerInfo
-                                {
-                                    Id = (int)x["Id"],
-                                    CusId = (string)x["CusId"],
-                                    CusName = (string)x["CusName"],
-                                }).ToList();
-                                return View(listCus);
-                            }
-                        }
-                    }
+            //        using SqlDataReader reader = cmd.ExecuteReader();
+            //        var listCus = reader.Cast<IDataRecord>()
+            //        .Select(x => new CustomerInfo
+            //        {
+            //            Id = (int)x["Id"],
+            //            CusId = (string)x["CusId"],
+            //            CusName = (string)x["CusName"],
+            //        }).ToList();
+            //        return View(listCus);
 
-                }
+            //    }
 
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    throw;
-                }
+            //    catch (Exception e)
+            //    {
+            //        Console.WriteLine(e);
+            //        throw;
+            //    }
 
 
-               
-            }
+
+            //}
         }
 
         // GET: CustomerInfoes/Details/5
