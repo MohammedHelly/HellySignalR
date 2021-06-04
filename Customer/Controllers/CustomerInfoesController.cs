@@ -50,7 +50,7 @@ namespace Customer.Controllers
         public async Task<IActionResult> Index()
         {
             var connStr = Configuration.GetConnectionString("DefaultConnection");
-            if (SqlDependency.Stop(connStr))
+           // if (SqlDependency.Stop(connStr))
                 SqlDependency.Start(connStr);
             SqlDependency dependency = new SqlDependency();
             dependency.OnChange += new OnChangeEventHandler(dependency_OnChange);
